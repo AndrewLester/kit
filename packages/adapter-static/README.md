@@ -155,29 +155,88 @@ To run an SPA on [Apache](https://httpd.apache.org/), you should add a `static/.
 
 ## GitHub Pages
 
-When building for GitHub Pages, make sure to update [`paths.base`](https://kit.svelte.dev/docs/configuration#paths) to match your repo name, since the site will be served from <https://your-username.github.io/your-repo-name> rather than from the root.
+Deploying your SvelteKit app to [GitHub Pages](https://pages.github.com/) is easiest with the public beta release of [GitHub Actions workflow deployments](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site#publishing-with-a-custom-github-actions-workflow). You'll need to make a few changes to your SvelteKit config and create a GitHub Actions workflow to build and deploy your site.
 
-You will have to prevent GitHub's provided Jekyll from managing your site by putting an empty `.nojekyll` file in your static folder. If you do not want to disable Jekyll, change the kit's `appDir` configuration option to `'app_'` or anything not starting with an underscore. For more information, see GitHub's [Jekyll documentation](https://docs.github.com/en/pages/setting-up-a-github-pages-site-with-jekyll/about-github-pages-and-jekyll#configuring-jekyll-in-your-github-pages-site).
+First, make sure to update [`paths.base`](https://kit.svelte.dev/docs/configuration#paths) to match your repo name, since the site will be served from <https://your-username.github.io/your-repo-name> rather than from the root.
 
-A config for GitHub Pages might look like the following:
+Next, update [`prerender.origin`](https://kit.svelte.dev/docs/configuration#prerender) to match your website's [origin](https://developer.mozilla.org/en-US/docs/Web/API/URL/origin).
+
+You can also feed environment variables into these configuration options as shown in the example below. Doing this gives your repository's GitHub Pages settings control over the two SvelteKit options, once you've configured a workflow file.
 
 ```js
-const dev = process.argv.includes('dev');
+// svelte.config.js
+import adapter from '@sveltejs/adapter-static';
 
-/** @type {import('@sveltejs/kit').Config} */
-const config = {
+export default {
 	...
 	kit: {
 		...
 		paths: {
-			base: dev ? '' : '/your-repo-name',
+			base: process.env.PAGES_BASE_PATH,  // '/your-repo-name'
 		},
-		// If you are not using a .nojekyll file, change your appDir to something not starting with an underscore.
-		// For example, instead of '_app', use 'app_', 'internal', etc.
-		appDir: 'internal',
+		prerender: {
+			origin: process.env.PAGES_PRERENDER_ORIGIN,  // 'https://your-username.github.io'
+		},
 	}
 };
 ```
+
+Last, you'll need a GitHub Actions workflow file to build and deploy the site on push. Here's an example that makes several assumptions (package manager, Node version, and main branch name) which you can modify to suit your needs:
+
+<details>
+<summary>
+pages.yml
+</summary>
+
+```yml
+name: Build and Deploy to GitHub Pages
+on:
+  push:
+    branches: [$default-branch]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/configure-pages@v2
+        id: pages
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+				env:
+					PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+     			PAGES_PRERENDER_ORIGIN: ${{ steps.pages.outputs.origin }}
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+				with:
+					path: build
+
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/deploy-pages@v1
+        id: deployment
+```
+
+</details>
 
 ## Changelog
 
