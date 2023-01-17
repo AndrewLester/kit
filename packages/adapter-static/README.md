@@ -170,7 +170,11 @@ import adapter from '@sveltejs/adapter-static';
 export default {
 	...
 	kit: {
-		...
+		adapter: adapter({
+			// This is one way to setup a working 404 page for GitHub pages.
+			// Note that it won't be prerendered. Make sure you also set up +error.svelte.
+      fallback: '404.html',
+    }),
 		paths: {
 			base: process.env.PAGES_BASE_PATH,  // '/your-repo-name'
 		},
@@ -181,7 +185,7 @@ export default {
 };
 ```
 
-Last, you'll need a GitHub Actions workflow file to build and deploy the site on push. Here's an example that makes several assumptions (package manager, Node version, and main branch name) which you can modify to suit your needs:
+Lastly, you'll need a GitHub Actions workflow file to build and deploy the site on push. Here's an example that makes several assumptions (package manager, Node version, and main branch name) which you can modify to suit your needs:
 
 <details>
 <summary>
