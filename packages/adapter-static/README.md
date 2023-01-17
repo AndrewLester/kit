@@ -201,7 +201,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: 'pages'
   cancel-in-progress: true
 
 jobs:
@@ -217,13 +217,13 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run build
-				env:
-					PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
-     			PAGES_PRERENDER_ORIGIN: ${{ steps.pages.outputs.origin }}
+        env:
+          PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          PAGES_PRERENDER_ORIGIN: ${{ steps.pages.outputs.origin }}
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
-				with:
-					path: build
+        with:
+          path: build
 
   deploy:
     needs: build
